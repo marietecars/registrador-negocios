@@ -514,8 +514,13 @@
 
 <!-- Header -->
 <header class="header">
-  <h1>🏪 Registrador de Negocios</h1>
-  <p>Vallecas · Agencia Web</p>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <h1>🏪 Registrador de Negocios</h1>
+      <p>Vallecas · Agencia Web</p>
+    </div>
+    <button onclick="openModal('dataModal')" style="background:rgba(255,255,255,0.18);border:none;color:#fff;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;min-height:36px">⚙️ Datos</button>
+  </div>
 </header>
 
 <!-- Metrics -->
@@ -638,6 +643,30 @@
     <p>Selecciona el texto y cópialo manualmente (Ctrl+C / Cmd+C):</p>
     <textarea class="fallback-textarea" id="fallbackText" readonly onclick="this.select()"></textarea>
     <button class="btn-close-fallback" onclick="closeModal('fallbackModal')">Cerrar</button>
+  </div>
+</div>
+
+<!-- Data modal (export / import) -->
+<div class="modal-overlay center" id="dataModal" onclick="overlayClick(event,'dataModal')">
+  <div class="fallback-box" style="max-width:420px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <strong style="font-size:16px">Exportar / Importar datos</strong>
+      <button class="btn-close" onclick="closeModal('dataModal')">×</button>
+    </div>
+
+    <p style="font-size:13px;color:#6B7280;margin-bottom:10px">
+      <strong>Exportar:</strong> copia este JSON y pégalo en el otro dispositivo.
+    </p>
+    <textarea id="exportArea" class="fallback-textarea" readonly onclick="this.select()" style="height:100px;font-size:11px;font-family:monospace"></textarea>
+    <button onclick="doExport()" class="btn-submit" style="margin-top:8px;font-size:14px;min-height:42px">📋 Copiar datos al portapapeles</button>
+
+    <hr style="border:none;border-top:1px solid #E5E7EB;margin:18px 0">
+
+    <p style="font-size:13px;color:#6B7280;margin-bottom:10px">
+      <strong>Importar:</strong> pega aquí el JSON de otro dispositivo y pulsa Importar.
+    </p>
+    <textarea id="importArea" class="fallback-textarea" placeholder='[{"id":"..."}]' style="height:100px;font-size:11px;font-family:monospace"></textarea>
+    <button onclick="doImport()" class="btn-submit" style="margin-top:8px;font-size:14px;min-height:42px;background:#16A34A">⬇️ Importar datos</button>
   </div>
 </div>
 
@@ -851,6 +880,55 @@
     t.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  /* ── Export / Import ── */
+  function openDataModal() {
+    document.getElementById('exportArea').value = JSON.stringify(records, null, 2);
+    openModal('dataModal');
+  }
+  // Override openModal for dataModal to pre-fill export area
+  const _origOpenModal = openModal;
+  function openModal(id) {
+    if (id === 'dataModal') {
+      document.getElementById('exportArea').value = JSON.stringify(records, null, 2);
+    }
+    document.getElementById(id).classList.add('active');
+  }
+
+  async function doExport() {
+    const json = JSON.stringify(records, null, 2);
+    try {
+      await navigator.clipboard.writeText(json);
+      showToast('✓ Datos copiados al portapapeles');
+    } catch {
+      document.getElementById('exportArea').select();
+      showToast('Selecciona el texto y copia manualmente');
+    }
+  }
+
+  function doImport() {
+    const raw = document.getElementById('importArea').value.trim();
+    if (!raw) { showToast('Pega los datos primero'); return; }
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch {
+      showToast('❌ JSON inválido — copia bien los datos'); return;
+    }
+    if (!Array.isArray(parsed)) { showToast('❌ Formato incorrecto'); return; }
+    const valid = parsed.filter(r => r.id && r.nombre && r.estado);
+    if (!valid.length) { showToast('❌ No hay negocios válidos'); return; }
+    // Merge: keep existing records, add new ones by id
+    const existingIds = new Set(records.map(r => r.id));
+    const newOnes = valid.filter(r => !existingIds.has(r.id));
+    records = [...records, ...newOnes];
+    save(records);
+    updateMetrics();
+    filter = 'Todos';
+    document.getElementById('filterSelect').value = 'Todos';
+    renderList();
+    closeModal('dataModal');
+    document.getElementById('importArea').value = '';
+    showToast(`✓ ${newOnes.length} negocio(s) importado(s)`);
   }
 
   /* ── Init ── */
