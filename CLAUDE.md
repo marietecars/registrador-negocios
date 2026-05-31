@@ -16,6 +16,10 @@ For clipboard API to work without the fallback modal, serve over HTTPS or localh
 npx serve .
 ```
 
+**Production URL:** `https://marietecars.github.io/registrador-negocios/`
+
+To deploy: `git add index.html && git commit -m "..." && git push` — GitHub Pages auto-deploys from `main`.
+
 ## Architecture
 
 Everything is in one file (`index.html`): inline CSS, inline JS, HTML structure.
@@ -34,6 +38,8 @@ Everything is in one file (`index.html`): inline CSS, inline JS, HTML structure.
 
 **Copy flow** — `navigator.clipboard.writeText()` with a `<textarea>` fallback modal for `file://` contexts where clipboard is blocked.
 
+**Export/Import** — `doExport()` serializes `records` to JSON and copies to clipboard. `doImport()` parses pasted JSON and merges by `id` (no duplicates). Triggered from the ⚙️ Datos modal in the header. `openModal('dataModal')` is intercepted to pre-fill the export textarea before opening.
+
 ## Key rules
 
 - `font-size: 16px` on all form inputs — prevents iOS auto-zoom.
@@ -42,6 +48,7 @@ Everything is in one file (`index.html`): inline CSS, inline JS, HTML structure.
 - Delete requires the custom confirm modal — never `window.confirm()`.
 - "Sin web" metric counts only actionable statuses (`Por contactar`, `Contactado`, `Interesado`), not `Cerrado`/`Rechazado`.
 - Per-card WhatsApp button only renders when `tieneWeb === false`.
+- All user-supplied values rendered via innerHTML must go through `esc()`. Pre-compute `safeId = esc(r.id)` before using it in inline event handlers and `data-*` attributes.
 
 ## Skill routing
 
