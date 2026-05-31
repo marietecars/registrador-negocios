@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Registrador de Negocios</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #2563EB;
+      --amber: #D97706;
+      --red: #DC2626;
+      --gray-border: #E5E7EB;
+      --gray-light: #F9FAFB;
+      --text: #111827;
+      --text-muted: #6B7280;
+      --bg: #F3F4F6;
+      --card: #FFFFFF;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 110px;
+    }
+
+    /* ── Storage error ── */
+    .storage-error {
+      display: none;
+      background: #FEF2F2;
+      border-bottom: 1px solid #FCA5A5;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #991B1B;
+      text-align: center;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: var(--blue);
+      color: #fff;
+      padding: 16px 16px 18px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .header p  { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
+    /* ── Metrics bar ── */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 12px 12px 0;
+    }
+    .metric-card {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 10px 6px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .metric-card .val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--blue);
+      line-height: 1;
+    }
+    .metric-card .lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      line-height: 1.2;
+    }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      align-items: center;
+    }
+    .filter-select {
+      flex: 1;
+      padding: 10px 32px 10px 12px;
+      border: 1.5px solid var(--gray-border);
+      border-radius: 8px;
+      background: var(--card);
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    .btn-add {
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 44px;
+      white-space: nowrap;
+    }
+    .btn-add:active { opacity: 0.85; }
+
+    /* ── Business list ── */
+    .list {
+      padding: 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+    .empty-state p { font-size: 14px; line-height: 1.5; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .card-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.25;
+    }
+    .btn-delete {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 17px;
+      min-width: 34px;
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .btn-delete:active { background: var(--gray-light); }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-cat    { background: #EDE9FE; color: #5B21B6; }
+    .badge-noweb  { background: #FEF3C7; color: #92400E; }
+    .badge-web    { background: #D1FAE5; color: #065F46; }
+    .meta-item    { display: flex; align-items: center; gap: 3px; }
+
+    .card-notes {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+      line-height: 1.4;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding-top: 6px;
+      border-top: 1px solid var(--gray-border);
+    }
+    .status-select {
+      flex: 1;
+      padding: 8px 28px 8px 10px;
+      border: 1.5px solid var(--gray-border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-color: var(--card);
+      cursor: pointer;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+    .status-select[data-status="Por contactar"]{ border-color:#D1D5DB; color:#374151; }
+    .status-select[data-status="Contactado"]   { border-color:#93C5FD; color:#1D4ED8; background-color:#EFF6FF; }
+    .status-select[data-status="Interesado"]   { border-color:#FCD34D; color:#92400E; background-color:#FFFBEB; }
+    .status-select[data-status="Cerrado"]      { border-color:#6EE7B7; color:#065F46; background-color:#F0FDF4; }
+    .status-select[data-status="Rechazado"]    { border-color:#FCA5A5; color:#991B1B; background-color:#FEF2F2; }
+
+    .btn-wa {
+      background: #25D366;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      min-height: 38px;
+    }
+    .btn-wa:active { opacity: 0.85; }
+
+    /* ── Bottom bar ── */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--card);
+      border-top: 1px solid var(--gray-border);
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+      z-index: 100;
+    }
+    .bottom-tabs { display: flex; border-bottom: 1px solid var(--gray-border); }
+    .bottom-tab {
+      flex: 1;
+      padding: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .bottom-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .bottom-panel {
+      display: none;
+      padding: 10px 12px;
+      align-items: center;
+      gap: 10px;
+    }
+    .bottom-panel.active { display: flex; }
+    .template-preview {
+      flex: 1;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .btn-copy {
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 42px;
+      flex-shrink: 0;
+    }
+    .btn-copy:active { opacity: 0.85; }
+    .btn-copy-wa { background: #25D366; }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      align-items: flex-end;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-overlay.center { align-items: center; justify-content: center; }
+
+    /* ── Bottom sheet ── */
+    .sheet {
+      background: var(--card);
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding-bottom: 32px;
+      animation: slideUp 0.22s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    .sheet-handle {
+      width: 40px; height: 4px;
+      background: var(--gray-border);
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--gray-border);
+    }
+    .sheet-title { font-size: 17px; font-weight: 700; }
+    .btn-close {
+      background: var(--gray-light);
+      border: none;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+    .sheet-body { padding: 16px; }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .form-label .req { color: var(--red); margin-left: 2px; }
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--gray-border);
+      border-radius: 8px;
+      font-size: 16px; /* prevents iOS auto-zoom */
+      color: var(--text);
+      font-family: inherit;
+      background: var(--card);
+      outline: none;
+    }
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-select   { appearance: none; -webkit-appearance: none; }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border: 1.5px solid var(--gray-border);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .checkbox-row input[type=checkbox] {
+      width: 20px; height: 20px;
+      accent-color: var(--blue);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .checkbox-row span { font-size: 15px; }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      min-height: 50px;
+    }
+    .btn-submit:active { opacity: 0.9; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-6px); }
+      75%      { transform: translateX(6px); }
+    }
+    .input-error {
+      border-color: var(--red) !important;
+      animation: shake 0.3s ease;
+    }
+
+    /* ── Confirm modal ── */
+    .confirm-box {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 16px;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+    }
+    .confirm-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .confirm-sub   { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+    .confirm-btns  { display: flex; gap: 10px; }
+    .btn-cancel {
+      flex: 1; padding: 12px;
+      border: 1.5px solid var(--gray-border);
+      border-radius: 10px;
+      background: var(--card);
+      font-size: 15px; font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-danger {
+      flex: 1; padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: var(--red);
+      color: #fff;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-danger:active { opacity: 0.9; }
+
+    /* ── Fallback copy modal ── */
+    .fallback-box {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px;
+      margin: 16px;
+      max-width: 400px;
+      width: 100%;
+    }
+    .fallback-box p { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
+    .fallback-textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1.5px solid var(--gray-border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      height: 120px;
+    }
+    .btn-close-fallback {
+      width: 100%; margin-top: 12px; padding: 12px;
+      border: 1.5px solid var(--gray-border);
+      border-radius: 10px; background: var(--card);
+      font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 120px; left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: #1F2937;
+      color: #fff;
+      padding: 9px 20px;
+      border-radius: 999px;
+      font-size: 14px; font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.18s, transform 0.18s;
+      pointer-events: none;
+      z-index: 400;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Storage error -->
+<div class="storage-error" id="storageError">
+  ⚠️ El almacenamiento local no está disponible (¿modo incógnito?). Los datos no se guardarán.
+</div>
+
+<!-- Header -->
+<header class="header">
+  <h1>🏪 Registrador de Negocios</h1>
+  <p>Vallecas · Agencia Web</p>
+</header>
+
+<!-- Metrics -->
+<div class="metrics">
+  <div class="metric-card">
+    <div class="val" id="mTotal">0</div>
+    <div class="lbl">Total leads</div>
+  </div>
+  <div class="metric-card">
+    <div class="val" id="mSinWeb" style="color:#D97706">0</div>
+    <div class="lbl">Sin web</div>
+  </div>
+  <div class="metric-card">
+    <div class="val" id="mInteresados" style="color:#16A34A">0</div>
+    <div class="lbl">Interesados</div>
+  </div>
+  <div class="metric-card">
+    <div class="val" id="mCerrados" style="color:#2563EB">0</div>
+    <div class="lbl">Cerrados</div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <select class="filter-select" id="filterSelect" onchange="applyFilter()">
+    <option value="Todos">Todos los estados</option>
+    <option value="Por contactar">Por contactar</option>
+    <option value="Contactado">Contactado</option>
+    <option value="Interesado">Interesado</option>
+    <option value="Cerrado">Cerrado</option>
+    <option value="Rechazado">Rechazado</option>
+  </select>
+  <button class="btn-add" onclick="openAddModal()">+ Añadir</button>
+</div>
+
+<!-- List -->
+<div class="list" id="businessList"></div>
+
+<!-- Bottom bar -->
+<div class="bottom-bar">
+  <div class="bottom-tabs">
+    <button class="bottom-tab active" id="tabP" onclick="switchTab('p')">🤝 Presencial</button>
+    <button class="bottom-tab"        id="tabW" onclick="switchTab('w')">💬 WhatsApp</button>
+  </div>
+  <div class="bottom-panel active" id="panelP">
+    <p class="template-preview">Hola, soy Mario de mi agencia. He visto que no tenéis página web. Podría ayudaros a tener presencia online y conseguir más clientes...</p>
+    <button class="btn-copy" onclick="copyTemplate('p')">Copiar</button>
+  </div>
+  <div class="bottom-panel" id="panelW">
+    <p class="template-preview">Hola, soy Mario 👋 Gestiono páginas web para negocios locales en Vallecas. He visto que [NOMBRE DEL NEGOCIO] no tiene web...</p>
+    <button class="btn-copy btn-copy-wa" onclick="copyTemplate('w')">Copiar</button>
+  </div>
+</div>
+
+<!-- Add modal (bottom sheet) -->
+<div class="modal-overlay" id="addModal" onclick="overlayClick(event,'addModal')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">Añadir negocio</span>
+      <button class="btn-close" onclick="closeModal('addModal')">×</button>
+    </div>
+    <div class="sheet-body">
+      <form id="addForm" onsubmit="handleSubmit(event)" novalidate>
+        <div class="form-group">
+          <label class="form-label">Nombre <span class="req">*</span></label>
+          <input class="form-input" id="fNombre" type="text" placeholder="Bar Los Compadres" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoría</label>
+          <select class="form-select" id="fCategoria">
+            <option>Restaurante/Bar</option>
+            <option>Peluquería/Barbería</option>
+            <option>Gimnasio/Fitness</option>
+            <option>Cafetería</option>
+            <option>Tienda</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input class="form-input" id="fTelefono" type="tel" placeholder="612 345 678" maxlength="15" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dirección</label>
+          <input class="form-input" id="fDireccion" type="text" placeholder="Calle Mayor 12" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">¿Tiene web?</label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="fTieneWeb">
+            <span>Sí, ya tienen página web</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notas</label>
+          <textarea class="form-textarea" id="fNotas" placeholder="Hablar con el dueño por las mañanas..." maxlength="500"></textarea>
+        </div>
+        <button type="submit" class="btn-submit">Guardar negocio</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal-overlay center" id="deleteModal" onclick="overlayClick(event,'deleteModal')">
+  <div class="confirm-box">
+    <p class="confirm-title">¿Eliminar este negocio?</p>
+    <p class="confirm-sub">Esta acción no se puede deshacer.</p>
+    <div class="confirm-btns">
+      <button class="btn-cancel" onclick="closeModal('deleteModal')">Cancelar</button>
+      <button class="btn-danger" id="btnConfirmDelete">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fallback copy modal -->
+<div class="modal-overlay center" id="fallbackModal" onclick="overlayClick(event,'fallbackModal')">
+  <div class="fallback-box">
+    <p>Selecciona el texto y cópialo manualmente (Ctrl+C / Cmd+C):</p>
+    <textarea class="fallback-textarea" id="fallbackText" readonly onclick="this.select()"></textarea>
+    <button class="btn-close-fallback" onclick="closeModal('fallbackModal')">Cerrar</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ── Constants ── */
+  const KEY = 'registrador_negocios';
+  const STATUSES = ['Por contactar','Contactado','Interesado','Cerrado','Rechazado'];
+  const TPL_PRESENCIAL = `Hola, soy Mario de mi agencia. He visto que no tenéis página web. Podría ayudaros a tener presencia online y conseguir más clientes. ¿Tenéis un momento para hablar?`;
+  const TPL_WHATSAPP   = `Hola, soy Mario 👋 Gestiono páginas web para negocios locales en Vallecas. He visto que [NOMBRE DEL NEGOCIO] no tiene web y me gustaría proponeros algo. ¿Os parece si os cuento en qué consiste? Es sin compromiso.`;
+
+  /* ── Storage check ── */
+  let storageOk = true;
+  try { localStorage.setItem('__ok__','1'); localStorage.removeItem('__ok__'); }
+  catch(e) { storageOk = false; document.getElementById('storageError').style.display = 'block'; }
+
+  /* ── Data layer ── */
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; }
+  }
+  function save(data) {
+    if (storageOk) localStorage.setItem(KEY, JSON.stringify(data));
+  }
+  function genId() {
+    try { return crypto.randomUUID(); } catch { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+  }
+
+  /* ── State ── */
+  let records = load();
+  let filter  = 'Todos';
+  let pendingDeleteId = null;
+
+  /* ── Metrics ── */
+  function updateMetrics() {
+    document.getElementById('mTotal').textContent       = records.length;
+    document.getElementById('mSinWeb').textContent      = records.filter(r => !r.tieneWeb && ['Por contactar','Contactado','Interesado'].includes(r.estado)).length;
+    document.getElementById('mInteresados').textContent = records.filter(r => r.estado === 'Interesado').length;
+    document.getElementById('mCerrados').textContent    = records.filter(r => r.estado === 'Cerrado').length;
+  }
+
+  /* ── Render ── */
+  function renderList() {
+    const el = document.getElementById('businessList');
+    const visible = records
+      .filter(r => filter === 'Todos' || r.estado === filter)
+      .sort((a,b) => new Date(b.creadoEn) - new Date(a.creadoEn));
+
+    if (!visible.length) {
+      el.innerHTML = `<div class="empty-state">
+        <div class="icon">🏪</div>
+        <p>${filter === 'Todos' ? '¡Aún no hay negocios!<br>Pulsa <strong>+ Añadir</strong> para empezar.' : 'No hay negocios con este estado.'}</p>
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = visible.map(r => {
+      const notes = r.notas ? (r.notas.length > 80 ? r.notas.slice(0,80)+'…' : r.notas) : '';
+      const safeId = esc(r.id);
+      const waBtn = !r.tieneWeb
+        ? `<button class="btn-wa" onclick="copyWA('${safeId}')">📋 WA</button>`
+        : '';
+      return `<div class="card" data-id="${safeId}">
+        <div class="card-top">
+          <div class="card-name">${esc(r.nombre)}</div>
+          <button class="btn-delete" onclick="askDelete('${safeId}')" aria-label="Eliminar">🗑</button>
+        </div>
+        <div class="card-meta">
+          <span class="badge badge-cat">${esc(r.categoria)}</span>
+          ${r.tieneWeb
+            ? '<span class="badge badge-web">✓ Con web</span>'
+            : '<span class="badge badge-noweb">Sin web</span>'}
+          ${r.telefono ? `<span class="meta-item">📞 ${esc(r.telefono)}</span>` : ''}
+          ${r.direccion ? `<span class="meta-item">📍 ${esc(r.direccion)}</span>` : ''}
+        </div>
+        ${notes ? `<div class="card-notes">"${esc(notes)}"</div>` : ''}
+        <div class="card-actions">
+          <select class="status-select" data-id="${safeId}" data-status="${esc(r.estado)}"
+            onchange="changeStatus('${safeId}', this.value)">
+            ${STATUSES.map(s => `<option${s===r.estado?' selected':''}>${s}</option>`).join('')}
+          </select>
+          ${waBtn}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function esc(s) {
+    return String(s||'')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── Filter ── */
+  function applyFilter() {
+    filter = document.getElementById('filterSelect').value;
+    renderList();
+  }
+
+  /* ── Status change ── */
+  function changeStatus(id, newStatus) {
+    const rec = records.find(r => r.id === id);
+    if (!rec) return;
+    rec.estado = newStatus;
+    save(records);
+    updateMetrics();
+
+    const sel = document.querySelector(`.status-select[data-id="${id}"]`);
+    if (sel) sel.setAttribute('data-status', newStatus);
+
+    if (filter !== 'Todos' && newStatus !== filter) {
+      const card = document.querySelector(`.card[data-id="${id}"]`);
+      if (card) { card.remove(); }
+      if (!document.querySelector('#businessList .card')) renderList();
+    }
+  }
+
+  /* ── Add ── */
+  function openAddModal() {
+    document.getElementById('addForm').reset();
+    openModal('addModal');
+    setTimeout(() => document.getElementById('fNombre').focus(), 280);
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const nombreEl = document.getElementById('fNombre');
+    const nombre = nombreEl.value.trim();
+    if (!nombre) {
+      nombreEl.classList.add('input-error');
+      nombreEl.focus();
+      nombreEl.addEventListener('input', () => nombreEl.classList.remove('input-error'), { once: true });
+      return;
+    }
+    const rec = {
+      id:        genId(),
+      nombre,
+      categoria: document.getElementById('fCategoria').value,
+      telefono:  document.getElementById('fTelefono').value.trim(),
+      direccion: document.getElementById('fDireccion').value.trim(),
+      tieneWeb:  document.getElementById('fTieneWeb').checked,
+      estado:    'Por contactar',
+      notas:     document.getElementById('fNotas').value.trim(),
+      creadoEn:  new Date().toISOString()
+    };
+    records.push(rec);
+    save(records);
+    updateMetrics();
+    filter = 'Todos';
+    document.getElementById('filterSelect').value = 'Todos';
+    renderList();
+    closeModal('addModal');
+    showToast('✓ Negocio añadido');
+  }
+
+  /* ── Delete ── */
+  function askDelete(id) {
+    pendingDeleteId = id;
+    openModal('deleteModal');
+  }
+  document.getElementById('btnConfirmDelete').addEventListener('click', () => {
+    if (!pendingDeleteId) return;
+    records = records.filter(r => r.id !== pendingDeleteId);
+    save(records);
+    pendingDeleteId = null;
+    updateMetrics();
+    renderList();
+    closeModal('deleteModal');
+    showToast('Negocio eliminado');
+  });
+
+  /* ── Copy ── */
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('¡Copiado!');
+    } catch {
+      document.getElementById('fallbackText').value = text;
+      openModal('fallbackModal');
+      setTimeout(() => document.getElementById('fallbackText').select(), 100);
+    }
+  }
+  function copyTemplate(tab) {
+    copyText(tab === 'p' ? TPL_PRESENCIAL : TPL_WHATSAPP);
+  }
+  function copyWA(id) {
+    const rec = records.find(r => r.id === id);
+    if (!rec) return;
+    copyText(TPL_WHATSAPP.replace('[NOMBRE DEL NEGOCIO]', rec.nombre));
+  }
+
+  /* ── Tabs ── */
+  function switchTab(tab) {
+    ['p','w'].forEach(t => {
+      document.getElementById('tab'+(t==='p'?'P':'W')).classList.toggle('active', t===tab);
+      document.getElementById('panel'+(t==='p'?'P':'W')).classList.toggle('active', t===tab);
+    });
+  }
+
+  /* ── Modal helpers ── */
+  function openModal(id)  { document.getElementById(id).classList.add('active'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+  function overlayClick(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+  /* ── Toast ── */
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  /* ── Init ── */
+  updateMetrics();
+  renderList();
+</script>
+</body>
+</html>
